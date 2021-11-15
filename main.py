@@ -29,18 +29,31 @@ validation_rows = 5000
 file_location = "Sentiment_140/sentiment_train_cleaned.csv"
 max_entries = 1599996
 # Models
-model_vectorizer_number = 1
+model_vectorizer_number = 3
 
 # Paths for Model and Vectorizer
 model_name = f'Model_{model_vectorizer_number}/model_{model_vectorizer_number}.pkl'
 vectorizer_name = f'Model_{model_vectorizer_number}/vectorizer_{model_vectorizer_number}.pkl'
+
+
+
+# NEGATIONS LIST
+negations_list = ['aint', 'arent', 'cannot', 'cant', 'couldnt', 'darent', 'didnt', 'doesnt', 
+'ain\'t', 'aren\'t', 'can\'t', 'couldn\'t', 'daren\'t', 'didn\'t', 'doesn\'t', 
+'dont', 'hadnt', 'hasnt', 'havent', 'isnt', 'mightnt', 'mustnt', 'neither', 
+'don\'t', 'hadn\'t', 'hasn\'t', 'haven\'t', 'isn\'t', 'mightn\'t', 'mustn\'t', 
+'neednt', 'needn\'t', 'never', 'none', 'nope', 'nor', 'not', 'nothing', 'nowhere', 
+'oughtnt', 'shant', 'shouldnt', 'uhuh', 'wasnt', 'werent', 'oughtn\'t', 'shan\'t', 
+'shouldn\'t', 'uh-uh', 'wasn\'t', 'weren\'t', 'without', 'wont', 'wouldnt', 'won\'t', 
+'wouldn\'t', 'rarely', 'seldom', 'despite', 'jk', 'but']
+
 
 # Main Reader
 def vectorize_data(data):
     # Data Length
     print(f'Data Length: {len(data)}')
     # Instance of CountVectorizer()
-    vectorizer = CountVectorizer(stop_words='english')
+    vectorizer = CountVectorizer(stop_words='english', ngram_range=(1, 2))
     # Vectorize Data
     vectorized_data = vectorizer.fit_transform(data)
     # Save Vectorizer
@@ -53,9 +66,9 @@ def vectorize_data(data):
 
 def train_classifier(data_x, data_y):
     # Instance of MultinomialNB()
-    # classifier = MultinomialNB()
+    classifier = MultinomialNB()
     # Logistic Regression Test
-    classifier = LogisticRegression(verbose=1, solver='liblinear',random_state=0, C=5, penalty='l2',max_iter=20000)
+    # classifier = LogisticRegression(verbose=1, solver='liblinear',random_state=0, C=5, penalty='l2',max_iter=20000)
 
     # Train Test Split
     train_x, test_x, train_y, test_y = train_test_split(
@@ -84,10 +97,8 @@ def test_individual_sentiments(model, vectorizer, data):
     vectorized_data = vectorizer.transform(data)
     # Predict
     predictions = model.predict_proba(vectorized_data)
-    # Print Prediction (0 = Negative, 1 = Positive)
-    print(predictions[0][1])
-    # Return Predictions
-    return predictions
+    # Return Predictions (0 = Negative, 1 = Positive)
+    return predictions[0][1]
 
 def save_model(model):
     # Save Model
@@ -142,6 +153,10 @@ def train():
     # Save Classifier
     save_model(classifier)
 
+def twitter_vaildate():
+    # Load 
+    pass
+
 def validate():
     # Load CSV File, but strip it first
     data = pd.read_csv(validation_csv_location, header=None, skiprows=1, nrows=validation_rows)
@@ -189,9 +204,26 @@ def validate():
     print(f'Total: {total}')
     print(f'Accuracy: {correct/total}')
 
-
 if __name__ == '__main__':
     # validate()
-    test_individual_sentiments(load_model(), load_vectorizer(), ["Wow this is the greatest thing I've ever seen. Love it. Amazing."])
-    # train()
+    test_string = "this is really not cool"
+    # Test if there is a negation
+    negations_found = 0
+    test_string_list = test_string.split()
+    for word in negations_list:
+        for word2 in test_string_list:
+            if word2.lower() == word.lower():
+                negations_found += 1
+    
+    positivity = test_individual_sentiments(load_model(), load_vectorizer(), [test_string])
 
+    if negations_found > 0:
+        print(f'Negation Found: {negations_found}')
+        for i in range(negations_found):
+            positivity = abs(1 - positivity)
+        print(f'Positivity: {positivity}')
+    else:
+        print(f'Positivity: {positivity}')
+
+
+    # train()
