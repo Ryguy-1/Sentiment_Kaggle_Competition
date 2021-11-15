@@ -29,7 +29,7 @@ validation_rows = 5000
 file_location = "Sentiment_140/sentiment_train_cleaned.csv"
 max_entries = 1599996
 # Models
-model_vectorizer_number = 3
+model_vectorizer_number = 2
 
 # Paths for Model and Vectorizer
 model_name = f'Model_{model_vectorizer_number}/model_{model_vectorizer_number}.pkl'
@@ -45,7 +45,7 @@ negations_list = ['aint', 'arent', 'cannot', 'cant', 'couldnt', 'darent', 'didnt
 'neednt', 'needn\'t', 'never', 'none', 'nope', 'nor', 'not', 'nothing', 'nowhere', 
 'oughtnt', 'shant', 'shouldnt', 'uhuh', 'wasnt', 'werent', 'oughtn\'t', 'shan\'t', 
 'shouldn\'t', 'uh-uh', 'wasn\'t', 'weren\'t', 'without', 'wont', 'wouldnt', 'won\'t', 
-'wouldn\'t', 'rarely', 'seldom', 'despite', 'jk', 'but']
+'wouldn\'t', 'rarely', 'seldom', 'despite', 'jk']#, 'but', 'however', 'yet', 'although']
 
 
 # Main Reader
@@ -169,6 +169,8 @@ def validate():
     better_sentiment = data.iloc[:, 0].tolist()
     worse_sentiment = data.iloc[:, 1].tolist()
 
+    print(f'Better Sentiment : {better_sentiment[0:10]}')
+
     # Load Vectorizer
     vectorizer = load_vectorizer()
     # Load Classifier
@@ -205,25 +207,28 @@ def validate():
     print(f'Accuracy: {correct/total}')
 
 if __name__ == '__main__':
-    # validate()
-    test_string = "this is really not cool"
-    # Test if there is a negation
-    negations_found = 0
-    test_string_list = test_string.split()
-    for word in negations_list:
-        for word2 in test_string_list:
-            if word2.lower() == word.lower():
-                negations_found += 1
+    validate()
+    # test_string = ""
+    # # Test if there is a negation
+    # negations_found = 0
+    # test_string_list = test_string.split()
+    # for word in negations_list:
+    #     for word2 in test_string_list:
+    #         if word2.lower() == word.lower():
+    #             negations_found += 1
     
-    positivity = test_individual_sentiments(load_model(), load_vectorizer(), [test_string])
+    # positivity = test_individual_sentiments(load_model(), load_vectorizer(), [test_string])
+    # print(f'Positivity: {positivity}')
 
-    if negations_found > 0:
-        print(f'Negation Found: {negations_found}')
-        for i in range(negations_found):
-            positivity = abs(1 - positivity)
-        print(f'Positivity: {positivity}')
-    else:
-        print(f'Positivity: {positivity}')
+    # if negations_found > 0:
+    #     print(f'Negation Found: {negations_found}')
+    #     print(f'positivity: {positivity}')
+    #     for i in range(negations_found):
+    #         positivity = abs(1 - positivity)
+    #         print(f'positivity: {positivity}')
+    #     print(f'Positivity: {positivity}')
+    # else:
+    #     print(f'Positivity: {positivity}')
 
 
     # train()
