@@ -35,19 +35,6 @@ model_vectorizer_number = 1
 model_name = f'Model_{model_vectorizer_number}/model_{model_vectorizer_number}.pkl'
 vectorizer_name = f'Model_{model_vectorizer_number}/vectorizer_{model_vectorizer_number}.pkl'
 
-
-
-# NEGATIONS LIST
-negations_list = ['aint', 'arent', 'cannot', 'cant', 'couldnt', 'darent', 'didnt', 'doesnt', 
-'ain\'t', 'aren\'t', 'can\'t', 'couldn\'t', 'daren\'t', 'didn\'t', 'doesn\'t', 
-'dont', 'hadnt', 'hasnt', 'havent', 'isnt', 'mightnt', 'mustnt', 'neither', 
-'don\'t', 'hadn\'t', 'hasn\'t', 'haven\'t', 'isn\'t', 'mightn\'t', 'mustn\'t', 
-'neednt', 'needn\'t', 'never', 'none', 'nope', 'nor', 'not', 'nothing', 'nowhere', 
-'oughtnt', 'shant', 'shouldnt', 'uhuh', 'wasnt', 'werent', 'oughtn\'t', 'shan\'t', 
-'shouldn\'t', 'uh-uh', 'wasn\'t', 'weren\'t', 'without', 'wont', 'wouldnt', 'won\'t', 
-'wouldn\'t', 'rarely', 'seldom', 'despite', 'jk']#, 'but', 'however', 'yet', 'although']
-
-
 # Main Reader
 def vectorize_data(data):
     # Data Length
@@ -169,8 +156,6 @@ def validate():
     better_sentiment = data.iloc[:, 0].tolist()
     worse_sentiment = data.iloc[:, 1].tolist()
 
-    print(f'Better Sentiment : {better_sentiment[0:10]}')
-
     # Load Vectorizer
     vectorizer = load_vectorizer()
     # Load Classifier
@@ -206,29 +191,119 @@ def validate():
     print(f'Total: {total}')
     print(f'Accuracy: {correct/total}')
 
-if __name__ == '__main__':
-    validate()
-    # test_string = ""
-    # # Test if there is a negation
-    # negations_found = 0
-    # test_string_list = test_string.split()
-    # for word in negations_list:
-    #     for word2 in test_string_list:
-    #         if word2.lower() == word.lower():
-    #             negations_found += 1
+
+class PredictionEngine:
+
+    # NEGATIONS LIST
+    negations_list = ['aint', 'arent', 'cannot', 'cant', 'couldnt', 'darent', 'didnt', 'doesnt', 
+    'ain\'t', 'aren\'t', 'can\'t', 'couldn\'t', 'daren\'t', 'didn\'t', 'doesn\'t', 
+    'dont', 'hadnt', 'hasnt', 'havent', 'isnt', 'mightnt', 'mustnt', 'neither', 
+    'don\'t', 'hadn\'t', 'hasn\'t', 'haven\'t', 'isn\'t', 'mightn\'t', 'mustn\'t', 
+    'neednt', 'needn\'t', 'never', 'none', 'nope', 'nor', 'not', 'nothing', 'nowhere', 
+    'oughtnt', 'shant', 'shouldnt', 'uhuh', 'wasnt', 'werent', 'oughtn\'t', 'shan\'t', 
+    'shouldn\'t', 'uh-uh', 'wasn\'t', 'weren\'t', 'without', 'wont', 'wouldnt', 'won\'t', 
+    'wouldn\'t', 'rarely', 'seldom', 'despite', 'jk']#, 'but', 'however', 'yet', 'although']
+
+    # Positive Threshold
+    positive_threshold = 0.7
+    # Negative Threshold
+    negative_threshold = 0.3
+
+    def __init__(self, vectorizer = load_vectorizer(), classifier = load_model()):
+        # Initialize Vectorizer and Classifier
+        self.vectorizer = vectorizer
+        self.classifier = classifier
     
-    # positivity = test_individual_sentiments(load_model(), load_vectorizer(), [test_string])
-    # print(f'Positivity: {positivity}')
+    # Returns Positive Probability
+    def predict(self, string):
+        # Predicts Word By Word Basis (Including Negations)
+        negated_positive_probability = self.predict_with_negations(string)
+        # Positive Probability (0 = Negative, 1 = Positive)
+        return negated_positive_probability
 
-    # if negations_found > 0:
-    #     print(f'Negation Found: {negations_found}')
-    #     print(f'positivity: {positivity}')
-    #     for i in range(negations_found):
-    #         positivity = abs(1 - positivity)
-    #         print(f'positivity: {positivity}')
-    #     print(f'Positivity: {positivity}')
-    # else:
-    #     print(f'Positivity: {positivity}')
+    def predict_with_negations(self, string):
+        # Split String
+        string_split = string.split()
+        # Get Locations of Negations
+        negation_locations = np.array([i for i, word in enumerate(string_split) if word in self.negations_list])
 
+        # Simplify Stringed Negations (Returns what indices to remove)
+        def simplify_negation_locations(negation_locations):
+
+            # Negations to Remove (Return)
+            negations_to_remove = []
+
+            # Get Sequences
+            sequences = []
+            for location in negation_locations:
+                if len(sequences) == 0:
+                    sequences.append([location])
+                elif location - sequences[-1][-1] == 1:
+                    sequences[-1].append(location)
+                else:
+                    sequences.append([location])
+
+            # Find Even Negations to Remove (Cancel Out)
+            # Shorten Odd Negations to One (Simplify)
+            for sequence in sequences:
+                if len(sequence) % 2 == 0:
+                    negations_to_remove.append(sequence)
+                elif len(sequence) % 2 == 1:
+                    negations_to_remove.append(sequence[1:])
+            negations_to_remove = [item for sublist in negations_to_remove for item in sublist]
+
+            # Return Simplified list of negation_locations
+            return negations_to_remove
+
+        # Simplify
+        negation_locations_to_remove = simplify_negation_locations(negation_locations)
+        
+        # remove redundant negations
+        new_string_list = []
+        for i in range(len(string_split)):
+            if i not in negation_locations_to_remove:
+                new_string_list.append(string_split[i])
+        string_split = new_string_list
+
+        # Updated Negation Locations
+        negation_locations = np.array([i for i, word in enumerate(string_split) if word in self.negations_list])
+
+        # Find Notably Positive and Negative Words (Excluding Negations) [word, value, index_in_phrase]
+        notable_words_plus_value = []
+
+        words_no_negations = [i for i in string_split if i not in self.negations_list]
+        for word in words_no_negations:
+            # Vectorize Data
+            vectorized_data = self.vectorizer.transform([word])
+            # Predict
+            positive_prediction = self.classifier.predict_proba(vectorized_data)[0]
+            if positive_prediction[1] > self.positive_threshold:
+                notable_words_plus_value.append([word, positive_prediction[1], string_split.index(word)])
+            elif positive_prediction[1] < self.negative_threshold:
+                notable_words_plus_value.append([word, positive_prediction[1], string_split.index(word)])
+
+        # If Notable Word Has Negation Before It or After It (Use Get Opposite of Value)
+        notable_word_values = []
+        for word in notable_words_plus_value:
+            if word[2] != 0 and string_split[word[2]-1] in self.negations_list: # If Word Before is a Negation
+                notable_word_values.append([word[0], abs(1-word[1]), word[2]])
+            elif word[2] != len(string_split)-1 and string_split[word[2]+1] in self.negations_list: # If Word is After a Negation
+                notable_word_values.append([word[0], abs(1-word[1]), word[2]])
+            else:
+                notable_word_values.append([word[0], word[1], word[2]])
+        
+        print(f'Notable Words sdf: {notable_word_values}')
+
+        # Returns Average of Notable Word Values
+        value_list = []
+        for word in notable_word_values:
+            value_list.append(word[1])
+        return np.average(np.array(value_list))
+
+if __name__ == '__main__':
+
+    prediction = PredictionEngine().predict("You absolutely do not suck")
+    print(prediction)
 
     # train()
+    # validate()
