@@ -285,12 +285,29 @@ class PredictionEngine:
         # If Notable Word Has Negation Before It or After It (Use Get Opposite of Value)
         notable_word_values = []
         for word in notable_words_plus_value:
-            if word[2] != 0 and string_split[word[2]-1] in self.negations_list: # If Word Before is a Negation
-                notable_word_values.append([word[0], abs(1-word[1]), word[2]])
-            elif word[2] != len(string_split)-1 and string_split[word[2]+1] in self.negations_list: # If Word is After a Negation
-                notable_word_values.append([word[0], abs(1-word[1]), word[2]])
-            else:
+            negations_found = 0
+            # If Word Before is a Negation
+            if word[2] != 0 and string_split[word[2]-1] in self.negations_list: 
+                print(word[0])
+                negations_found += 1
+            # If Word 2 Before is a Negation
+            elif word[2] != 1 and string_split[word[2]-2] in self.negations_list:
+                print(word[0])
+                negations_found += 1
+            # If Word is After a Negation
+            if not word[2] > len(string_split)-2 and string_split[word[2]+1] in self.negations_list: 
+                print(word[0])
+                negations_found += 1
+
+            # # If Word 2 After is a Negation -> Very Rare (May Not Even Occur in English)
+            # elif not word[2] > len(string_split)-3 and string_split[word[2]+2] in self.negations_list:
+            #     negations_found += 1
+
+            # Otherwise, not Negated
+            if negations_found % 2 == 0:
                 notable_word_values.append([word[0], word[1], word[2]])
+            elif negations_found % 2 == 1:
+                notable_word_values.append([word[0], abs(1-word[1]), word[2]])
         
         print(f'Notable Words sdf: {notable_word_values}')
 
@@ -302,7 +319,7 @@ class PredictionEngine:
 
 if __name__ == '__main__':
 
-    prediction = PredictionEngine().predict("You absolutely do not suck")
+    prediction = PredictionEngine().predict("kyle is isn't really cool, not")
     print(prediction)
 
     # train()
