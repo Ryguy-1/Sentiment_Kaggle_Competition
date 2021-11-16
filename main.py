@@ -29,7 +29,7 @@ validation_rows = 500
 file_location = "Sentiment_140/sentiment_train_cleaned.csv"
 max_entries = 1599996
 # Models
-model_vectorizer_number = 1
+model_vectorizer_number = 2
 
 # Paths for Model and Vectorizer
 model_name = f'Model_{model_vectorizer_number}/model_{model_vectorizer_number}.pkl'
@@ -40,7 +40,7 @@ def vectorize_data(data):
     # Data Length
     print(f'Data Length: {len(data)}')
     # Instance of CountVectorizer()
-    vectorizer = CountVectorizer(stop_words='english', ngram_range=(1, 2))
+    vectorizer = CountVectorizer(stop_words='english', ngram_range=(1, 5))
     # Vectorize Data
     vectorized_data = vectorizer.fit_transform(data)
     # Save Vectorizer
@@ -211,10 +211,10 @@ class PredictionEngine:
     # 0.6, 0.4 = 65%, 4 unable to predict = 69%
     # 0.7, 0.3 = 58%, 20 unable to predict = 78%
 
-    def __init__(self, vectorizer = load_vectorizer(), classifier = load_model()):
+    def __init__(self):
         # Initialize Vectorizer and Classifier
-        self.vectorizer = vectorizer
-        self.classifier = classifier
+        self.vectorizer = load_vectorizer()
+        self.classifier = load_model()
 
         # Unable to Predict Counter
         self.unable_to_predict_total = 0
@@ -333,5 +333,5 @@ if __name__ == '__main__':
     # vectorizer = load_vectorizer()
     # print(model.predict_proba(vectorizer.transform(['this is not cool. this is not awesome'])))
 
-    # train()
-    validate()
+    train()
+    # validate()
