@@ -29,7 +29,7 @@ validation_rows = 5000
 file_location = "Sentiment_140/sentiment_train_cleaned.csv"
 max_entries = 1599996
 # Models
-model_vectorizer_number = 2
+model_vectorizer_number = 1
 
 # Paths for Model and Vectorizer
 model_name = f'Model_{model_vectorizer_number}/model_{model_vectorizer_number}.pkl'
