@@ -23,7 +23,7 @@ import pandas as pd
 
 # Validation
 validation_csv_location = 'Competition_Files/validation_data.csv'
-validation_rows = 5000
+validation_rows = 500
 
 # Parameters
 file_location = "Sentiment_140/sentiment_train_cleaned.csv"
@@ -145,6 +145,8 @@ def twitter_vaildate():
     pass
 
 def validate():
+    prediction_engine = PredictionEngine()
+
     # Load CSV File, but strip it first
     data = pd.read_csv(validation_csv_location, header=None, skiprows=1, nrows=validation_rows)
     # Remove first column
@@ -156,32 +158,29 @@ def validate():
     better_sentiment = data.iloc[:, 0].tolist()
     worse_sentiment = data.iloc[:, 1].tolist()
 
-    # Load Vectorizer
-    vectorizer = load_vectorizer()
-    # Load Classifier
-    classifier = load_model()
+    better_sentiment_predictions = []
+    worse_sentiment_predictions = []
 
-    # Vectorize Data
-    better_sentiment_vectorized = vectorizer.transform(better_sentiment)
-    worse_sentiment_vectorized = vectorizer.transform(worse_sentiment)
+    counter = 0
+    for sentiment in better_sentiment:
+        better_sentiment_predictions.append(prediction_engine.predict(sentiment))
+        counter += 1
+        if counter % 10 == 0:
+            print(f'{counter} Predictions Made')
+    counter = 0
+    for sentiment in worse_sentiment:
+        worse_sentiment_predictions.append(prediction_engine.predict(sentiment))
+        counter += 1
+        if counter % 10 == 0:
+            print(f'{counter} Predictions Made')
 
-    print(better_sentiment_vectorized.shape)
-
-    # Predict
-    better_sentiment_predictions = classifier.predict_proba(better_sentiment_vectorized)
-    worse_sentiment_predictions = classifier.predict_proba(worse_sentiment_vectorized) 
-
-    # Print Predictions
-    print(f'Better Sentiment Predictions: {better_sentiment_predictions[0][1]}')
-    print(f'Worse Sentiment Predictions: {worse_sentiment_predictions[0][1]}')
+    print(f'Unable to Predict {prediction_engine.unable_to_predict_total}')
 
     # Compare Relative Accuracy
     correct = 0
     total = 0
     for better, worse in zip(better_sentiment_predictions, worse_sentiment_predictions):
         # Good = 1, Bad = 0
-        better = better[1]
-        worse = worse[1]
         if better>worse:
             correct += 1
         if better != worse:
@@ -190,7 +189,6 @@ def validate():
     print(f'Correct: {correct}')
     print(f'Total: {total}')
     print(f'Accuracy: {correct/total}')
-
 
 class PredictionEngine:
 
@@ -205,21 +203,28 @@ class PredictionEngine:
     'wouldn\'t', 'rarely', 'seldom', 'despite', 'jk']#, 'but', 'however', 'yet', 'although']
 
     # Positive Threshold
-    positive_threshold = 0.7
+    positive_threshold = 0.6
     # Negative Threshold
-    negative_threshold = 0.3
+    negative_threshold = 0.4
+
+    # 0.5, 0.5 = 66%, 0 unable to predict = 66%
+    # 0.6, 0.4 = 65%, 4 unable to predict = 69%
+    # 0.7, 0.3 = 58%, 20 unable to predict = 78%
 
     def __init__(self, vectorizer = load_vectorizer(), classifier = load_model()):
         # Initialize Vectorizer and Classifier
         self.vectorizer = vectorizer
         self.classifier = classifier
+
+        # Unable to Predict Counter
+        self.unable_to_predict_total = 0
     
     # Returns Positive Probability
     def predict(self, string):
         # Predicts Word By Word Basis (Including Negations)
-        negated_positive_probability = self.predict_with_negations(string)
+        positive_probability = self.predict_with_negations(string)
         # Positive Probability (0 = Negative, 1 = Positive)
-        return negated_positive_probability
+        return positive_probability
 
     def predict_with_negations(self, string):
         # Split String
@@ -288,15 +293,12 @@ class PredictionEngine:
             negations_found = 0
             # If Word Before is a Negation
             if word[2] != 0 and string_split[word[2]-1] in self.negations_list: 
-                print(word[0])
                 negations_found += 1
             # If Word 2 Before is a Negation
             elif word[2] != 1 and string_split[word[2]-2] in self.negations_list:
-                print(word[0])
                 negations_found += 1
             # If Word is After a Negation
-            if not word[2] > len(string_split)-2 and string_split[word[2]+1] in self.negations_list: 
-                print(word[0])
+            if not word[2] > len(string_split)-2 and string_split[word[2]+1] in self.negations_list:
                 negations_found += 1
 
             # # If Word 2 After is a Negation -> Very Rare (May Not Even Occur in English)
@@ -309,18 +311,27 @@ class PredictionEngine:
             elif negations_found % 2 == 1:
                 notable_word_values.append([word[0], abs(1-word[1]), word[2]])
         
-        print(f'Notable Words sdf: {notable_word_values}')
+        # print(f'Notable Words sdf: {notable_word_values}')
 
         # Returns Average of Notable Word Values
-        value_list = []
-        for word in notable_word_values:
-            value_list.append(word[1])
-        return np.average(np.array(value_list))
+        if len(notable_word_values) is not 0:
+            value_list = []
+            for word in notable_word_values:
+                value_list.append(word[1])
+            return np.average(np.array(value_list))
+        else:
+            self.unable_to_predict_total += 1
+            return 0.5
+
 
 if __name__ == '__main__':
 
-    prediction = PredictionEngine().predict("kyle is isn't really cool, not")
-    print(prediction)
+    # prediction = PredictionEngine().predict("")
+    # print(prediction)
+
+    # model = load_model()
+    # vectorizer = load_vectorizer()
+    # print(model.predict_proba(vectorizer.transform(['this is not cool. this is not awesome'])))
 
     # train()
-    # validate()
+    validate()
