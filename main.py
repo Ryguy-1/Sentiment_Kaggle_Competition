@@ -346,8 +346,10 @@ class PredictionEngine:
 
 if __name__ == '__main__':
 
-    prediction = PredictionEngine().predict("this is amazing and I love it")
+    prediction = PredictionEngine().predict("this is amazing and I love it so much amazing amazing great amazing perfect impecable")
     print(prediction)
+    prediction_2 = PredictionEngine().predict("this is terrible trash and aweful")
+    print(prediction_2)
 
     # model = load_model()
     # vectorizer = load_vectorizer()
