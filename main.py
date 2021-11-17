@@ -40,7 +40,7 @@ def vectorize_data(data):
     # Data Length
     print(f'Data Length: {len(data)}')
     # Instance of CountVectorizer()
-    vectorizer = CountVectorizer(stop_words='english', ngram_range=(1, 5))
+    vectorizer = CountVectorizer(stop_words='english', ngram_range=(1, 1))
     # Vectorize Data
     vectorized_data = vectorizer.fit_transform(data)
     # Save Vectorizer
@@ -142,7 +142,32 @@ def train():
 
 def twitter_vaildate():
     # Load 
-    pass
+    twitter_validation = pd.read_csv("Sentiment_140/validation_data.csv", header=None)
+    # Review Ranking
+    ranking_column = twitter_validation[0]
+    # Text Data
+    text_column = twitter_validation[5]
+    # Just Text Data
+    review_text = []
+    for review in text_column:
+        review_text.append(str(review))
+    
+    # Model / Vectorizer
+    model = load_model()
+    vectorizer = load_vectorizer()
+
+    # Vectorize Data
+    review_text_vectorized = vectorizer.transform(review_text)
+
+    # Predict
+    predictions = model.predict_proba(review_text_vectorized)
+    # Return Predictions (0 = Negative, 1 = Positive)
+
+    # Compare Predictions to Ranking Column
+    for i in range(len(predictions)):
+        positive_prediction = predictions[i][1]
+        ranking = ranking_column[i]
+
 
 def validate():
     prediction_engine = PredictionEngine()
@@ -206,10 +231,6 @@ class PredictionEngine:
     positive_threshold = 0.6
     # Negative Threshold
     negative_threshold = 0.4
-
-    # 0.5, 0.5 = 66%, 0 unable to predict = 66%
-    # 0.6, 0.4 = 65%, 4 unable to predict = 69%
-    # 0.7, 0.3 = 58%, 20 unable to predict = 78%
 
     def __init__(self):
         # Initialize Vectorizer and Classifier
@@ -311,7 +332,7 @@ class PredictionEngine:
             elif negations_found % 2 == 1:
                 notable_word_values.append([word[0], abs(1-word[1]), word[2]])
         
-        # print(f'Notable Words sdf: {notable_word_values}')
+        print(f'Notable Words sdf: {notable_word_values}')
 
         # Returns Average of Notable Word Values
         if len(notable_word_values) is not 0:
@@ -323,15 +344,14 @@ class PredictionEngine:
             self.unable_to_predict_total += 1
             return 0.5
 
-
 if __name__ == '__main__':
 
-    # prediction = PredictionEngine().predict("")
-    # print(prediction)
+    prediction = PredictionEngine().predict("this is amazing and I love it")
+    print(prediction)
 
     # model = load_model()
     # vectorizer = load_vectorizer()
     # print(model.predict_proba(vectorizer.transform(['this is not cool. this is not awesome'])))
 
-    train()
+    # train()
     # validate()
