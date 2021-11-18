@@ -29,7 +29,7 @@ validation_rows = 500
 file_location = "Sentiment_140/sentiment_train_cleaned.csv"
 max_entries = 1599996
 # Models
-model_vectorizer_number = 2
+model_vectorizer_number = 1
 
 # Paths for Model and Vectorizer
 model_name = f'Model_{model_vectorizer_number}/model_{model_vectorizer_number}.pkl'
@@ -141,6 +141,7 @@ def train():
     save_model(classifier)
 
 def twitter_vaildate():
+    prediction_engine = PredictionEngine()
     # Load 
     twitter_validation = pd.read_csv("Sentiment_140/validation_data.csv", header=None)
     # Review Ranking
@@ -151,23 +152,36 @@ def twitter_vaildate():
     review_text = []
     for review in text_column:
         review_text.append(str(review))
-    
-    # Model / Vectorizer
-    model = load_model()
-    vectorizer = load_vectorizer()
-
-    # Vectorize Data
-    review_text_vectorized = vectorizer.transform(review_text)
 
     # Predict
-    predictions = model.predict_proba(review_text_vectorized)
+    predictions = []
+    counter = 0
+    for review in review_text:
+        predictions.append(prediction_engine.predict(review))
+        counter += 1
+        if counter % 100 == 0:
+            print(f'{counter} Reviews Processed')
+    
     # Return Predictions (0 = Negative, 1 = Positive)
 
     # Compare Predictions to Ranking Column
+    total = 0
+    correct = 0
     for i in range(len(predictions)):
-        positive_prediction = predictions[i][1]
+        positive_prediction = predictions[i]
         ranking = ranking_column[i]
+        if ranking == 4 or ranking == 0:
+            if positive_prediction > 0.5 and ranking == 4:
+                correct += 1
+            elif positive_prediction < 0.5 and ranking == 0:
+                correct += 1
+            
+            if positive_prediction != 0.5:
+                total += 1
 
+    print(f'Correct: {correct}')
+    print(f'Total: {total}')
+    print(f'Accuracy: {correct/total}')
 
 def validate():
     prediction_engine = PredictionEngine()
@@ -243,6 +257,14 @@ class PredictionEngine:
     # Returns Positive Probability
     def predict(self, string):
         # Predicts Word By Word Basis (Including Negations)
+        if len(string.split()) == 1:
+            # Vectorize
+            vectorized_data = self.vectorizer.transform([string])
+            # Predict
+            prediction = self.classifier.predict_proba(vectorized_data)
+            # Return
+            return prediction[0][1]
+        
         positive_probability = self.predict_with_negations(string)
         # Positive Probability (0 = Negative, 1 = Positive)
         return positive_probability
@@ -346,10 +368,15 @@ class PredictionEngine:
 
 if __name__ == '__main__':
 
-    prediction = PredictionEngine().predict("this is amazing and I love it so much amazing amazing great amazing perfect impecable")
+    # twitter_vaildate()
+
+    test_string = ""
+    prediction = PredictionEngine().predict(test_string)
     print(prediction)
-    prediction_2 = PredictionEngine().predict("this is terrible trash and aweful")
-    print(prediction_2)
+
+
+    # prediction_2 = PredictionEngine().predict("this is terrible trash and aweful")
+    # print(prediction_2)
 
     # model = load_model()
     # vectorizer = load_vectorizer()
